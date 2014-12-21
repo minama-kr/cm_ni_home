@@ -1,0 +1,112 @@
+[
+	{
+		"menu_cd": "ni700",
+		"sup_menu_cd": "",
+		"menu_nm" : "병원소개",
+		"url" : "goal.asp",
+		"seq" : 7,
+		"img_url" : "menu_aside_introduce.png",
+		"img_alt" : "병원장인사말 바로가기",
+		"img_link" : "goal.asp",
+		"sup_menu" : [
+			{ "menu_cd": "ni701", "sup_menu_cd": "ni701", "menu_nm" : "설립목적", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni702", "sup_menu_cd": "ni702", "menu_nm" : "경영이념", "url" : "ideology.asp", "seq" : 2 },
+			{ "menu_cd": "ni703", "sup_menu_cd": "ni703", "menu_nm" : "인사말", "url" : "greeting.asp", "seq" : 3 },
+			{ "menu_cd": "ni704", "sup_menu_cd": "ni704", "menu_nm" : "병원연혁", "url" : "history .asp", "seq" : 4 },
+			{ "menu_cd": "ni705", "sup_menu_cd": "ni705", "menu_nm" : "오시는길", "url" : "contact.asp", "seq" : 5 }
+		]
+	},{
+		"menu_cd": "ni100",
+		"sup_menu_cd": "",
+		"menu_nm" : "진료안내",
+		"url" : "/treat_guide/treat_guide.asp",
+		"seq" : 1,
+		"img_url" : "menu_aside_treat.png",
+		"img_alt":"진료문의전화 041.521.1114",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni101", "sup_menu_cd": "ni101", "menu_nm" : "진료과목안내", "url" : "/treat_guide/treat_guide.asp", "seq" : 1 },
+			{ "menu_cd": "ni102", "sup_menu_cd": "ni102", "menu_nm" : "진료시간안내", "url" : "/treat_guide/subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni103", "sup_menu_cd": "ni103", "menu_nm" : "외래접수안내", "url" : "/treat_guide/accept.asp", "seq" : 3 },
+			{ "menu_cd": "ni104", "sup_menu_cd": "ni104", "menu_nm" : "입,퇴원안내", "url" : "/treat_guide/inout .asp", "seq" : 4 }
+		]
+	},{
+		"menu_cd": "ni200",
+		"sup_menu_cd": "",
+		"menu_nm" : "이용안내",
+		"url" : "goal.asp",
+		"seq" : 2,
+		"img_url" : "menu_aside_use.png",
+		"img_alt" : "비급여항목안내 바로가기",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni201", "sup_menu_cd": "ni201", "menu_nm" : "시설안내", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni202", "sup_menu_cd": "ni202", "menu_nm" : "전화번호안내", "url" : "subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni203", "sup_menu_cd": "ni203", "menu_nm" : "층별안내", "url" : "accept.asp", "seq" : 3 },
+			{ "menu_cd": "ni204", "sup_menu_cd": "ni204", "menu_nm" : "입원생활안내", "url" : "inout .asp", "seq" : 4 },
+			{ "menu_cd": "ni205", "sup_menu_cd": "ni205", "menu_nm" : "제증명서 발급안내", "url" : "inout .asp", "seq" : 5 }
+		]
+	},{
+		"menu_cd": "ni400",
+		"sup_menu_cd": "",
+		"menu_nm" : "재활전문치료센터",
+		"url" : "goal.asp",
+		"seq" : 3,
+		"img_url" : "menu_aside_pro.png",
+		"img_alt" : "전문의료진 구성 바로가기",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni301", "sup_menu_cd": "ni301", "menu_nm" : "센터소개", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni302", "sup_menu_cd": "ni302", "menu_nm" : "운동치료", "url" : "subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni303", "sup_menu_cd": "ni303", "menu_nm" : "작업치료", "url" : "accept.asp", "seq" : 3 },
+			{ "menu_cd": "ni304", "sup_menu_cd": "ni304", "menu_nm" : "통증치료", "url" : "inout .asp", "seq" : 4 },
+			{ "menu_cd": "ni305", "sup_menu_cd": "ni305", "menu_nm" : "전문클리닉", "url" : "inout .asp", "seq" : 5 }
+		]
+	},{
+		"menu_cd": "ni400",
+		"sup_menu_cd": "",
+		"menu_nm" : "사회사업실",
+		"url" : "goal.asp",
+		"seq" : 4,
+		"img_url" : "menu_aside_volunteer.png",
+		"img_alt" : "자원봉사 문의 041.521.1114",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni401", "sup_menu_cd": "ni401", "menu_nm" : "사회사업실소개", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni402", "sup_menu_cd": "ni402", "menu_nm" : "자원봉사활동", "url" : "subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni403", "sup_menu_cd": "ni403", "menu_nm" : "프로그램안내", "url" : "accept.asp", "seq" : 3 }
+		]
+	},{
+		"menu_cd": "ni500",
+		"sup_menu_cd": "",
+		"menu_nm" : "병원소식",
+		"url" : "goal.asp",
+		"seq" : 5,
+		"img_url" : "menu_aside_notice.png",
+		"img_alt" : "비급여항목안내 바로가기병원 최근행사보기 바로가기",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni501", "sup_menu_cd": "ni501", "menu_nm" : "공지사항", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni502", "sup_menu_cd": "ni502", "menu_nm" : "건강상식", "url" : "subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni503", "sup_menu_cd": "ni503", "menu_nm" : "병원앨범", "url" : "accept.asp", "seq" : 3 },
+			{ "menu_cd": "ni504", "sup_menu_cd": "ni504", "menu_nm" : "어르신앨범", "url" : "inout .asp", "seq" : 4 },
+			{ "menu_cd": "ni505", "sup_menu_cd": "ni505", "menu_nm" : "채용공고", "url" : "inout .asp", "seq" : 5 }
+		]
+	},{
+		"menu_cd": "ni600",
+		"sup_menu_cd": "",
+		"menu_nm" : "고객의소리",
+		"url" : "goal.asp",
+		"seq" : 6,
+		"img_url" : "menu_aside_voc.png",
+		"img_alt" : "병원 문의 FAQ 바로가기",
+		"img_link" : "",
+		"sup_menu" : [
+			{ "menu_cd": "ni601", "sup_menu_cd": "ni601", "menu_nm" : "자주하는질문", "url" : "goal.asp", "seq" : 1 },
+			{ "menu_cd": "ni602", "sup_menu_cd": "ni602", "menu_nm" : "질문 및 답변", "url" : "subject.asp", "seq" : 2 },
+			{ "menu_cd": "ni603", "sup_menu_cd": "ni603", "menu_nm" : "불만 및 고충처리", "url" : "accept.asp", "seq" : 3 },
+			{ "menu_cd": "ni604", "sup_menu_cd": "ni604", "menu_nm" : "칭찬합시다", "url" : "inout .asp", "seq" : 4 }
+		]
+	}
+
+]

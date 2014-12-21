@@ -1,0 +1,839 @@
+﻿<%@ codepage="65001" language="VBScript" %>
+<% Option Explicit %>
+<%
+' CKFinder
+' ========
+' http://cksource.com/ckfinder
+' Copyright (C) 2007-2014, CKSource - Frederico Knabben. All rights reserved.
+'
+' The software, this file and its contents are subject to the CKFinder
+' License. Please read the license.txt file before using, installing, copying,
+' modifying or distribute this file or part of its contents. The contents of
+' this file is part of the Source Code of CKFinder.
+%>
+<!-- #INCLUDE file="core/factory.asp" -->
+<!-- #INCLUDE file="core/AccessControlConfig.asp" -->
+<!-- #INCLUDE file="core/folderHandler.asp" -->
+<!-- #INCLUDE file="core/xml.asp" -->
+<!-- #INCLUDE file="core/config.asp" -->
+<!-- #INCLUDE file="core/ImagesConfig.asp" -->
+<!-- #INCLUDE file="core/ThumbnailsConfig.asp" -->
+<!-- #INCLUDE file="core/ResourceTypeConfig.asp" -->
+<!-- #INCLUDE file="core/connector.asp" -->
+<!-- #INCLUDE file="core/hooks.asp" -->
+
+<!-- #INCLUDE file="errorHandler/Errors.asp" -->
+<!-- #INCLUDE file="errorHandler/base.asp" -->
+<!-- #INCLUDE file="errorHandler/FileUpload.asp" -->
+<!-- #INCLUDE file="errorHandler/QuickUpload.asp" -->
+<!-- #INCLUDE file="errorHandler/http.asp" -->
+
+<!-- #INCLUDE file="commandHandler/commandHandlerBase.asp" -->
+<!-- #INCLUDE file="commandHandler/XmlCommandHandlerBase.asp" -->
+<!-- #INCLUDE file="commandHandler/CopyFiles.asp" -->
+<!-- #INCLUDE file="commandHandler/CreateFolder.asp" -->
+<!-- #INCLUDE file="commandHandler/DeleteFiles.asp" -->
+<!-- #INCLUDE file="commandHandler/DeleteFolder.asp" -->
+<!-- #INCLUDE file="commandHandler/DownloadFile.asp" -->
+<!-- #INCLUDE file="commandHandler/FileUpload.asp" -->
+<!-- #INCLUDE file="commandHandler/GetFolders.asp" -->
+<!-- #INCLUDE file="commandHandler/GetFiles.asp" -->
+<!-- #INCLUDE file="commandHandler/init.asp" -->
+<!-- #INCLUDE file="commandHandler/MoveFiles.asp" -->
+<!-- #INCLUDE file="commandHandler/RenameFile.asp" -->
+<!-- #INCLUDE file="commandHandler/RenameFolder.asp" -->
+<!-- #INCLUDE file="commandHandler/QuickUpload.asp" -->
+<!-- #INCLUDE file="commandHandler/Thumbnail.asp" -->
+
+<!-- #INCLUDE file="utils/FileSystem.asp" -->
+<!-- #INCLUDE file="utils/Image.asp" -->
+<!-- #INCLUDE file="utils/Netrube_upload.asp" -->
+<!-- #INCLUDE file="utils/RegExp.asp" -->
+<!-- #INCLUDE file="utils/sha1.asp" -->
+<!-- #INCLUDE file="utils/Time.asp" -->
+<!-- #INCLUDE file="utils/xmlNode.asp" -->
+<!-- #INCLUDE file="utils/Translator.asp" -->
+
+<script runat="server" language="VBScript">
+' You can increase the time allowed for the script to avoid problems with large uploads
+' Server.ScriptTimeout = 120
+'
+' ### CKFinder : Configuration File - Basic Instructions
+'
+' In a generic usage case, the following tasks must be done to configure
+' CKFinder:
+'     1. Check the baseUrl and baseDir variables.
+'     2. If available, paste your license key in the "LicenseKey" setting.
+'     3. Create the CheckAuthentication() function that enables CKFinder for authenticated users.
+'
+' Other settings may be left with their default values, or used to control
+' advanced features of CKFinder.
+'
+' There's a script available at http://cksource.com/forums/viewtopic.php?f=10&t=13604 that performs several
+' tests on the server to check that everything is configured properly and can help to easily understand
+' what kind of adjustments are required to fix problems or get better security and performance.
+'
+Dim CKFinder_Config
+Set CKFinder_Config = Server.CreateObject("Scripting.Dictionary")
+
+' SECURITY: You must explicitly enable it. (Set it to "true").
+
+' This function must check the user session to be sure that he/she is
+' authorized to upload and access files in the File Browser.
+function CheckAuthentication()
+	' WARNING : DO NOT simply return "true". By doing so, you are allowing
+	' "anyone" to upload and list the files in your server. You must implement
+	' some kind of session validation here. Even something very simple as...
+	'
+	'              CheckAuthentication = ( Session( "IsAuthorized" ) )
+	'
+	' ... where Session( "IsAuthorized" ) is set to "true" as soon as the
+	' user logs in your system.
+
+	CheckAuthentication = true
+End function
+
+' In order to find out what's wrong if you have some problems setting up the editor you
+' can enable this setting, it will give more detailed info on the errors, including
+' server paths that are hidden for security reasons with the default settings.
+Dim CKFinder_Debug
+CKFinder_Debug = true
+
+
+' LicenseKey : Paste your license key here. If left blank, CKFinder will be
+' fully functional, in demo mode.
+CKFinder_Config.Add "LicenseName", ""
+CKFinder_Config.Add "LicenseKey", ""
+
+
+'To make it easy to configure CKFinder, the baseUrl and baseDir can be used.
+'Those are helper variables used later in this config file.
+
+Dim baseUrl, baseDir
+
+'baseUrl : the base path used to build the final URL for the resources handled
+'in CKFinder. If empty, the default value (/userfiles/) is used.
+'
+'Examples:
+'	baseUrl = "http://example.com/ckfinder/files/"
+'	baseUrl = "/userfiles/"
+'
+'ATTENTION: The trailing slash is required.
+
+baseUrl = "/ckfinder/userfiles/"
+
+'baseDir : the path to the local directory (in the server) which points to the
+'above baseUrl URL. This is the path used by CKFinder to handle the files in
+'the server. Full write permissions must be granted to this directory.
+'
+'Examples:
+'	// You may point it to a directory directly:
+'	baseDir = "C:\SiteDir\CKFinder\userfiles\"
+'
+'	// Or you may let CKFinder discover the path, based on baseUrl:
+'	baseDir = server.MapPath(baseUrl) & "\"
+'
+'ATTENTION: The trailing slash is required.
+
+baseDir = server.MapPath(baseUrl) & "\"
+
+'
+' ### Advanced Settings
+'
+
+'
+' Thumbnails : thumbnails settings. All thumbnails will end up in the same
+' directory, no matter the resource type.
+'
+' You must select which component will take care of the thumbnail creation and image reescaling
+' Possible options:
+' "Asp.Net", it should work with Asp.Net 1.1 and 2.0 without any extra software
+' "Persits.Jpeg" Commercial component from Persits. Tested 2.1.0.2
+' "briz.AspThumb" Commercial component from BRIZ Software. Tested 2.0
+' "AspImage.Image" Commercial component from ServerObjects. It doesn't seems to handle gifs properly. Tested 2.32
+' "shotgraph.image" Commercial component from ShotGraph. Tested: 3.4
+' "Auto": It will try to autodetect which one is available, in the order described above.
+' "None": Image manipulation (thumbnails, maximum dimensions, validation) won't be available.
+'
+' Note: In order to avoid running the autodetection routine in every request, you should set the
+' component that you want to use, that will give a slightly better performance.
+'
+Dim Thumbnails, Images
+
+Set Thumbnails = server.CreateObject("Scripting.Dictionary")
+	Thumbnails.Add "url", baseUrl & "_thumbs"
+	Thumbnails.Add "directory", baseDir & "_thumbs"
+	Thumbnails.Add "enabled", true
+	Thumbnails.Add "maxWidth", 100
+	Thumbnails.Add "maxHeight", 100
+	Thumbnails.Add "quality", 80
+	Thumbnails.Add "directAccess", false
+
+Set Images = server.CreateObject("Scripting.Dictionary")
+	Images.Add "maxWidth", 1600
+	Images.Add "maxHeight", 1200
+	Images.Add "quality", 80
+	Images.Add "component", "Auto"
+
+CKFinder_Config.Add "Thumbnails", Thumbnails
+CKFinder_Config.Add "Images", Images
+
+'	RoleSessionVar : the session variable name that CKFinder must use to retrieve
+'	the "role" of the current user. The "role", can be used in the "AccessControl"
+'	settings (below in this page).
+CKFinder_Config.Add "RoleSessionVar", "CKFinder_UserRole"
+
+
+'	By default the asp code will call asp.net and use the system
+'	temp folder to create an athentication file that can be validated,
+'	but in some shared hosting situations the security settings
+'	in the Asp.Net side might not allow to read that file.
+'	In those situations, you can assign a path here (full system
+'	path, ex: c:\inetpub\wwwroot\userfiles\_aspNet\ )
+'	and put that same value in the config.asp file and it will be used
+'	instead of the default temp path
+' If you don't set it properly in BOTH config.asp and web.config you
+'	will get an error: 403 Forbidden
+'
+Dim CKFinderTempPath
+CKFinderTempPath=""
+
+'	AccessControl : used to restrict access or features to specific folders.
+'
+'	Many "AccessControl" entries can be added. All attributes are optional.
+'	Subfolders inherit their default settings from their parents' definitions.
+'
+'		- The "role" attribute accepts the special '*' value, which means
+'		  "everybody".
+'		- The "resourceType" attribute accepts the special value '*', which
+'		  means "all resource types".
+
+Dim accessControl(0)
+
+Set accessControl(0) = DefineAccessControlItem("*", "*", "/", true, true, true, true, true, true, true, true)
+
+' Helper function to return a dictionary with all the properties.
+Function DefineAccessControlItem(role, resourceType, folder, folderView, folderCreate, folderRename, folderDelete, fileView, fileUpload, fileRename, fileDelete)
+	Dim ControlItem
+	Set ControlItem = server.CreateObject("Scripting.Dictionary")
+	ControlItem.Add "role", role
+	ControlItem.Add "resourceType", resourceType
+	ControlItem.Add "folder", folder
+
+	If Not(IsEmpty(folderView)) Then ControlItem.Add "folderView", folderView
+	If Not(IsEmpty(folderCreate)) Then ControlItem.Add "folderCreate", folderCreate
+	If Not(IsEmpty(folderRename)) Then ControlItem.Add "folderRename", folderRename
+	If Not(IsEmpty(folderDelete)) Then ControlItem.Add "folderDelete", folderDelete
+
+	If Not(IsEmpty(fileView)) Then ControlItem.Add "fileView", fileView
+	If Not(IsEmpty(fileUpload)) Then ControlItem.Add "fileUpload", fileUpload
+	If Not(IsEmpty(fileRename)) Then ControlItem.Add "fileRename", fileRename
+	If Not(IsEmpty(fileDelete)) Then ControlItem.Add "fileDelete", fileDelete
+
+	Set DefineAccessControlItem = ControlItem
+End function
+
+
+
+'	For example, if you want to restrict the upload, rename or delete of files in
+'	the "Logos" folder of the resource type "Images", you may uncomment the
+'	following definition, leaving the above one:
+'	Please, remember to adjust Dim accessControl(0) to Dim accessControl(1)
+'
+' Set accessControl(1) = DefineAccessControlItem("*", "Images", "/Logos", true, true, true, true, true, false, false, false)
+'
+
+CKFinder_Config.Add "AccessControl", accessControl
+
+
+
+'ResourceType : defines the "resource types" handled in CKFinder. A resource
+'type is nothing more than a way to group files under different paths, each one
+'having different configuration settings.
+'
+'Each resource type name must be unique.
+'
+'When loading CKFinder, the "type" querystring parameter can be used to display
+'a specific type only. If "type" is omitted in the URL, the
+'"DefaultResourceTypes" settings is used (may contain the resource type names
+'separated by a comma). If left empty, all types are loaded.
+'
+'maxSize is defined in bytes, but shorthand notation may be also used.
+'Available options are: G, M, K (case insensitive).
+'1M equals 1048576 bytes (one Megabyte), 1K equals 1024 bytes (one Kilobyte), 1G equals one Gigabyte.
+'Example: 'maxSize' => "8M",
+' ==============================================================================
+' ATTENTION: Flash files with `swf' extension, just like HTML files, can be used
+' to execute JavaScript code and to e.g. perform an XSS attack. Grant permission
+' to upload `.swf` files only if you understand and can accept this risk.
+' ==============================================================================
+
+CKFinder_Config.Add "DefaultResourceTypes", ""
+
+'Change the number to match the number of resource types that you want to use minus one (it starts at 0)
+Dim ResourceTypes(2)
+
+Set ResourceTypes(0) = DefineResourceType( _
+	"Files", _
+	baseUrl & "files", _
+	baseDir & "files", _
+	0, _
+	"7z,aiff,asf,avi,bmp,csv,doc,docx,fla,flv,gif,gz,gzip,jpeg,jpg,mid,mov,mp3,mp4,mpc,mpeg,mpg,ods,odt,pdf,png,ppt,pptx,pxd,qt,ram,rar,rm,rmi,rmvb,rtf,sdc,sitd,swf,sxc,sxw,tar,tgz,tif,tiff,txt,vsd,wav,wma,wmv,xls,xlsx,zip", _
+	"" _
+	)
+
+Set ResourceTypes(1) = DefineResourceType( _
+	"Images", _
+	baseUrl & "images", _
+	baseDir & "images", _
+	0, _
+	"bmp,gif,jpeg,jpg,png", _
+	"" _
+	)
+
+Set ResourceTypes(2) = DefineResourceType( _
+	"Flash", _
+	baseUrl & "flash", _
+	baseDir & "flash", _
+	0, _
+	"swf,flv", _
+	"" _
+	)
+'Remember to increase the index for each new resource type that you add.
+
+
+CKFinder_Config.Add "ResourceType", ResourceTypes
+
+' Helper function to return a dictionary with all the properties.
+Function DefineResourceType(name, url, directory, maxSize, allowedExtensions, deniedExtensions)
+	Dim ResourceType
+	Set ResourceType = server.CreateObject("Scripting.Dictionary")
+	ResourceType.Add "name", name
+	ResourceType.Add "url", url
+	ResourceType.Add "directory", directory
+	ResourceType.Add "maxSize", maxSize
+	ResourceType.Add "allowedExtensions", allowedExtensions
+	ResourceType.Add "deniedExtensions", deniedExtensions
+
+	Set DefineResourceType = ResourceType
+End function
+
+
+'
+' Security checks.
+'
+
+'This is due to a security problem in Apache, but it might be better to leave it enabled to protect against unknown bugs in IIS
+CKFinder_Config.Add "CheckDoubleExtension", True
+
+' Indicates that the file size (MaxSize) for images must be checked only
+' after scaling them. Otherwise, it is checked right after uploading.
+CKFinder_Config.Add "CheckSizeAfterScaling", True
+
+' Indicates the maximum upload size allowed at the server.
+' It will be used by Flash as well as HTML5 uploads before sending data to the server.
+CKFinder_Config.Add "MaxUploadSize", 0
+
+' For security, HTML is allowed in the first Kb of data for files having the
+' following extensions only.
+CKFinder_Config.Add "HtmlExtensions", "html,htm,xml,js"
+
+' Folders to not display in CKFinder, no matter their location. No
+' paths are accepted, only the folder name.
+' The * and ? wildcards are accepted.
+' put different options separated by the pipe |
+' By default folders starting with a dot character are disallowed.
+CKFinder_Config.Add "HideFolders", ".*|CVS"
+
+' Files to not display in CKFinder, no matter their location. No
+' paths are accepted, only the file name, including extension.
+' The * and ? wildcards are accepted.
+' put different options separated by the pipe |
+CKFinder_Config.Add "HideFiles", ".*"
+
+' Perform additional checks for image files
+' if set to true, validate that the image can be parsed by the server so it isn't a bogus file
+CKFinder_Config.Add "SecureImageUploads", true
+
+' IIS 6.0 has security issues related to certain characters used in paths.
+' This setting should always be set to true unless you have a very good reason to change it.
+CKFinder_Config.Add "DisallowUnsafeCharacters", true
+
+' If the CKFinder directory is protected with Basic Authentication,
+' the call to asp.net will fail because the .net page will be called
+' without the authentication
+' In order to solve the problem you must provide here the credentials
+CKFinder_Config.Add "ServerUserName", ""
+CKFinder_Config.Add "ServerUserPassword", ""
+
+</script>
+
+<script runat="server" language="VBScript">
+' CKFinder
+' ========
+' http://cksource.com/ckfinder
+' Copyright (C) 2007-2014, CKSource - Frederico Knabben. All rights reserved.
+'
+' The software, this file and its contents are subject to the CKFinder
+' License. Please read the license.txt file before using, installing, copying,
+' modifying or distribute this file or part of its contents. The contents of
+' this file is part of the Source Code of CKFinder.
+'
+' CKFinder extension: resize image according to a given size
+
+class CKFinder_Connector_CommandHandler_ImageResize
+	''
+	' Command name
+	'
+	' @access private
+	' @var string
+	'
+	private command
+
+	'pseudo inheritance
+	private base
+
+	Private Sub Class_Initialize()
+		Set base = new CKFinder_Connector_CommandHandler_XmlCommandHandlerBase
+		Set base.child = me
+		command = "ImageResize"
+	End Sub
+
+	Private Sub Class_Terminate()
+		Set base.child = Nothing
+		Set base = Nothing
+	End Sub
+
+	' Pseudo inheritance
+	Public Property Get currentFolder()
+		Set currentFolder = base.currentFolder
+	End Property
+
+	Public Sub sendResponse(response)
+		base.sendResponse(response)
+	End sub
+
+	Public Property Get ErrorHandler()
+		Set ErrorHandler = base.ErrorHandler
+	End Property
+
+    private function getConfig()
+		Dim config
+		If CKFinder_Config.Exists("plugin_imageresize") then
+			Set config = CKFinder_Config("plugin_imageresize")
+		Else
+			Set config = server.CreateObject("Scripting.Dictionary")
+		End if
+
+		If Not(config.Exists("smallThumb")) Then config.Add "smallThumb", "90x90"
+		If Not(config.Exists("mediumThumb")) Then config.Add "mediumThumb", "120x120"
+		If Not(config.Exists("largeThumb")) Then config.Add "largeThumb", "180x180"
+
+		Set getConfig = config
+    End function
+
+    ''
+     ' handle request and build XML
+     ' @access protected
+     '
+     '
+	 function buildXml( oXML )
+
+		if ( request.Form("CKFinderCommand") <> "true") then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Not sent by CKFinder"
+		End if
+
+        ' resizing to 1x1 is almost equal to deleting a file, that's why FILE_DELETE permissions are required
+        if (Not currentFolder.checkAcl(CKFINDER_CONNECTOR_ACL_FILE_DELETE)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_UNAUTHORIZED, "", "Failed ACL check"
+        End if
+        ' it is possible to create a new file with this plugin, so check FILE_UPLOAD as well
+        if (Not currentFolder.checkAcl(CKFINDER_CONNECTOR_ACL_FILE_UPLOAD)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_UNAUTHORIZED, "", "Failed ACL check"
+        End if
+
+		Dim resourceTypeInfo, fileName, oUFS, filePath
+        Set resourceTypeInfo = currentFolder.getResourceTypeConfig()
+
+		fileName = request.form("fileName")
+        if ("" = fileName) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_NAME, "", "Empty fileName"
+        End If
+
+		Set oUFS = oCKFinder_Factory.UtilsFileSystem
+
+        if (Not oUFS.checkFileName(fileName) Or resourceTypeInfo.checkIsHiddenFile(fileName)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid filename"
+		End if
+
+        if (Not resourceTypeInfo.checkExtension(fileName)) then
+ 			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid extension"
+		End if
+
+        filePath = oUFS.combinePaths( currentFolder.getServerPath(), fileName)
+
+        if (Not oUFS.FileExists(filePath)) then
+ 			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_FILE_NOT_FOUND, "", "File doesn't exists: " & filePath
+		End if
+
+		Dim imagesConfig, maxWidth, maxHeight, newWidth, newHeight, quality, newFileName, newFilePath
+		newWidth = request.form("width")
+		newHeight = request.form("height")
+        quality = 80
+
+		set imagesConfig = oCKFinder_Factory.Config.getImagesConfig
+		maxWidth = imagesConfig.getMaxWidth()
+		maxHeight = imagesConfig.getMaxHeight()
+
+        if (IsNumeric(newWidth) And IsNumeric(newHeight)) Then
+			newWidth = CInt(newWidth)
+			newHeight = CInt(newHeight)
+			if (newWidth<1 Or newHeight<1) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "wrong dimensions"
+			End if
+
+			if (maxWidth>0 And newWidth>maxWidth) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "wrong dimensions"
+			End if
+			if (maxHeight>0 And newHeight>maxHeight) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "wrong dimensions"
+			End if
+
+			newFileName = request.form("newFileName")
+			if (""=newFileName) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_NAME, "", "Empty newFileName"
+			End If
+
+			if (Not resourceTypeInfo.checkExtension(newFileName)) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_EXTENSION, "", "Invalid extension " & newFileName
+			End If
+
+			if (Not oUFS.checkFileName(newFileName) or resourceTypeInfo.checkIsHiddenFile(newFileName)) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_NAME, "", "Invalid name " & newFileName
+			End If
+
+			newFilePath = oUFS.combinePaths(currentFolder.getServerPath(), newFileName)
+
+'            if (!is_writable(dirname($newFilePath))) {
+ '               $this->_errorHandler->throwError(CKFINDER_CONNECTOR_ERROR_ACCESS_DENIED);
+  '          }
+
+			if (request.form("overwrite") <> "1" And oUFS.FileExists(newFilePath)) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_ALREADY_EXIST, "", "File exists: " & newFilePath
+			End if
+
+            if (Not oCKFinder_Factory.UtilsImage.createThumb(filePath, newFilePath, newWidth, newHeight, quality, false) ) then
+				errorHandler.throwError CKFINDER_CONNECTOR_ERROR_ACCESS_DENIED, "", "Error in createThumb"
+			End if
+
+		End if
+
+		Dim config, nameWithoutExt, extension, sizes, size, i, thumbName, oRegex, matches, match
+        Set config = getConfig()
+
+        nameWithoutExt = oUFS.getFileNameWithoutExtension(fileName, true)
+        extension = oUFS.getExtension(fileName, true)
+		sizes = Array("small", "medium", "large")
+		For i=0 To 2
+			size = sizes(i)
+			If request.form(size)="1" Then
+				thumbName = nameWithoutExt & "_" & size & "." & extension
+				newFilePath = oUFS.CombinePaths(currentFolder.getServerPath, thumbName)
+
+				if (oUFS.FileExists(newFilePath)) then
+					errorHandler.throwError CKFINDER_CONNECTOR_ERROR_ALREADY_EXIST, "", "File exists: " & newFilePath
+				End if
+
+				If config.Exists(size & "Thumb") then
+
+					Set oRegex	= New RegExp
+					oRegex.IgnoreCase	= True
+					oRegex.Global		= True
+					oRegex.Pattern	= "^(\d+)x(\d+)$"
+
+					Set matches	= oRegex.Execute( config(size & "Thumb") )
+					Set match = matches(0).subMatches
+
+					oCKFinder_Factory.UtilsImage.createThumb filePath, newFilePath, match(0), match(1), quality, true
+
+				End if
+			End if
+		next
+
+    End function
+
+	' Event listeners:
+    public function onInitCommand( connectorNode )
+		Dim pluginsInfo, imageResize, config, i, entry
+
+		Set pluginsInfo = connectorNode.getChild("PluginsInfo")
+		Set imageresize = pluginsInfo.addChild("imageresize")
+
+		Set config = getConfig()
+		For Each entry In config
+			imageresize.addAttribute entry, config(entry)
+		next
+		onInitCommand = true
+    End function
+
+    public function onBeforeExecuteCommand( command )
+        if ( command = "ImageResize" ) then
+            sendResponse( response )
+            onBeforeExecuteCommand = False
+            Exit function
+        End if
+
+        onBeforeExecuteCommand = true
+    End Function
+
+End Class
+
+
+
+
+class CKFinder_Connector_CommandHandler_ImageResizeInfo
+	''
+	' Command name
+	'
+	' @access private
+	' @var string
+	'
+	private command
+
+	'pseudo inheritance
+	private base
+
+	Private Sub Class_Initialize()
+		Set base = new CKFinder_Connector_CommandHandler_XmlCommandHandlerBase
+		Set base.child = me
+		command = "ImageResizeInfo"
+	End Sub
+
+	Private Sub Class_Terminate()
+		Set base.child = Nothing
+		Set base = Nothing
+	End Sub
+
+	' Pseudo inheritance
+	Public Property Get currentFolder()
+		Set currentFolder = base.currentFolder
+	End Property
+
+	Public Sub sendResponse(response)
+		base.sendResponse(response)
+	End sub
+
+	Public Property Get ErrorHandler()
+		Set ErrorHandler = base.ErrorHandler
+	End Property
+
+    ''
+     ' handle request and build XML
+     ' @access protected
+     '
+     '
+    function buildXml( oXML )
+
+        if not(currentFolder.checkAcl(CKFINDER_CONNECTOR_ACL_FILE_VIEW)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_UNAUTHORIZED, "", "ACL check failed"
+		End if
+
+		Dim resourceTypeInfo
+		Set resourceTypeInfo = currentFolder.getResourceTypeConfig()
+
+		Dim fileName
+		fileName = request("fileName")
+		If (fileName="") then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_NAME, "", "Missing filename"
+		End if
+
+		Dim oUFS
+		Set oUFS = oCKFinder_Factory.UtilsFileSystem
+
+        if (Not oUFS.checkFileName(fileName) or resourceTypeInfo.checkIsHiddenFile(fileName)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid filename"
+		End if
+
+        if (Not resourceTypeInfo.checkExtension(fileName)) then
+ 			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid extension"
+		End if
+
+		Dim filePath
+		filePath = oUFS.combinePaths(currentFolder.getServerPath(), fileName)
+
+		If Not(oUFS.fileExists(filePath)) then
+ 			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_FILE_NOT_FOUND, "", "File doesn't exists: " & filePath
+		End if
+
+		' returns CKFinder_Size object
+		Dim size, oNode
+        Set size = oCKFinder_Factory.UtilsImage.getImageSize(filePath)
+        Set oNode = oXML.connectorNode.addChild("ImageInfo")
+        oNode.addAttribute "width", size.width
+        oNode.addAttribute "height", size.height
+
+    End function
+
+	' Event listeners:
+
+    public function onBeforeExecuteCommand( command )
+        if ( command = "ImageResizeInfo" ) then
+            sendResponse( response )
+            onBeforeExecuteCommand = False
+            Exit function
+        End if
+
+        onBeforeExecuteCommand = true
+    End Function
+
+End Class
+
+	Dim CommandHandler_ImageResize, CommandHandler_ImageResizeInfo
+If (TypeName(oCKFinder_Factory) <> "Empty") then
+	Set CommandHandler_ImageResize = new CKFinder_Connector_CommandHandler_ImageResize
+	Set CommandHandler_ImageResizeInfo = new CKFinder_Connector_CommandHandler_ImageResizeInfo
+
+	CKFinder_AddHook "BeforeExecuteCommand", CommandHandler_ImageResize
+	CKFinder_AddHook "BeforeExecuteCommand", CommandHandler_ImageResizeInfo
+	CKFinder_AddHook "InitCommand", CommandHandler_ImageResize
+
+	CKFinder_AddPlugin "imageresize"
+End if
+
+</script>
+<script runat="server" language="VBScript">
+' CKFinder
+' ========
+' http://cksource.com/ckfinder
+' Copyright (C) 2007-2014, CKSource - Frederico Knabben. All rights reserved.
+'
+' The software, this file and its contents are subject to the CKFinder
+' License. Please read the license.txt file before using, installing, copying,
+' modifying or distribute this file or part of its contents. The contents of
+' this file is part of the Source Code of CKFinder.
+'
+' CKFinder extension: provides command that saves edited file.
+
+class CKFinder_Connector_CommandHandler_FileEditor
+	''
+	' Command name
+	'
+	' @access private
+	' @var string
+	'
+	private command
+
+	'pseudo inheritance
+	private base
+
+	Private Sub Class_Initialize()
+		Set base = new CKFinder_Connector_CommandHandler_XmlCommandHandlerBase
+		Set base.child = me
+		command = "SaveFile"
+	End Sub
+
+	Private Sub Class_Terminate()
+		Set base.child = Nothing
+		Set base = Nothing
+	End Sub
+
+	' Pseudo inheritance
+	Public Property Get currentFolder()
+		Set currentFolder = base.currentFolder
+	End Property
+
+	Public Sub sendResponse(response)
+		base.sendResponse(response)
+	End sub
+
+	Public Property Get ErrorHandler()
+		Set ErrorHandler = base.ErrorHandler
+	End Property
+
+	''
+     ' handle request and build XML
+     ' @access protected
+     '
+     '
+	 function buildXml( oXML )
+
+		if ( request.Form("CKFinderCommand") <> "true") then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Not sent by CKFinder"
+		End if
+
+        ' Saving empty file is equal to deleting a file, that's why FILE_DELETE permissions are required
+        if (Not currentFolder.checkAcl(CKFINDER_CONNECTOR_ACL_FILE_DELETE)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_UNAUTHORIZED, "", "Failed ACL check"
+        End if
+
+		Dim resourceTypeInfo, fileName, content, oUFS, filePath
+        Set resourceTypeInfo = currentFolder.getResourceTypeConfig()
+
+		fileName = request.form("fileName")
+        if ("" = fileName) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_NAME, "", "Empty fileName"
+        End If
+
+		content = request.form("Content")
+        if (IsEmpty(content)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "No content"
+        End If
+
+		Set oUFS = oCKFinder_Factory.UtilsFileSystem
+
+		if (Not oUFS.checkFileName(fileName) Or resourceTypeInfo.checkIsHiddenFile(fileName)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid filename"
+		End if
+
+		if (Not resourceTypeInfo.checkExtension(fileName)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_INVALID_REQUEST, "", "Invalid extension"
+		End if
+
+		filePath = oUFS.combinePaths( currentFolder.getServerPath(), fileName)
+
+		if (Not oUFS.FileExists(filePath)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_FILE_NOT_FOUND, "", "File doesn't exists: " & filePath
+		End if
+
+		If Not(oUFS.DeleteFile(filePath)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_ACCESS_DENIED, "", "Can't delete file: " & filePath
+		End If
+
+		If Not(oUFS.CreateTextFileUTF8(filePath, content)) then
+			errorHandler.throwError CKFINDER_CONNECTOR_ERROR_ACCESS_DENIED, "", "Can't write file: " & filePath
+		End If
+
+    End function
+
+	' Event listeners:
+    public function onBeforeExecuteCommand( command )
+        if ( command = "SaveFile" ) then
+            sendResponse( response )
+            onBeforeExecuteCommand = False
+            Exit function
+        End if
+
+        onBeforeExecuteCommand = true
+    End Function
+
+End Class
+
+	Dim CommandHandler_FileEditor
+
+If (TypeName(oCKFinder_Factory) <> "Empty") then
+	Set CommandHandler_FileEditor = new CKFinder_Connector_CommandHandler_FileEditor
+
+	CKFinder_AddHook "BeforeExecuteCommand", CommandHandler_FileEditor
+
+	CKFinder_AddPlugin "fileeditor"
+End If
+
+</script>
+
+
+<script runat="server" language="VBScript">
+Dim sCommand
+sCommand = request.queryString("command")
+
+oCKFinder_Factory.Connector.executeCommand(sCommand)
+</script>
